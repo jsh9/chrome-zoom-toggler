@@ -7,7 +7,7 @@ A Chrome and Edge extension to enable one-click toggling between two customizabl
 This extension is not on the Chrome Web Store yet. To install it manually into your Chrome or Edge browser, following the steps below:
 
 1. Download this extension. You can choose either options:
-    * Download the latest stable release from the [Releases](https://github.com/jsh9/chatgpt-to-markdown/releases) page
+    * Download the latest stable release from the [Releases](https://github.com/jsh9/chrome-zoom-toggler/releases) page
     * Clone this repository (which may contain newer-than-stable features). [Here](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)) is how to clone a Github repository.
 
 2. Manually load the downloaded/cloned files into the browser:
