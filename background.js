@@ -25,7 +25,7 @@ chrome.storage.onChanged.addListener((changes) => {
 });
 
 // Listen for extension icon clicks
-chrome.browserAction.onClicked.addListener((tab) => {
+chrome.action.onClicked.addListener((tab) => {
   // Retrieve the current zoom level of the active tab
   chrome.tabs.getZoom(tab.id, (currentZoom) => {
     let currentZoomPct = currentZoom * 100;
