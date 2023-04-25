@@ -1,0 +1,11 @@
+{
+    "name": "chrome-zoom-toggler",
+    "scripts": {
+        "auto-format": "npx prettier --write '*.js'"
+    },
+    "author": "https://github.com/jsh9",
+    "license": "MIT",
+    "devDependencies": {
+        "prettier": "2.8.8"
+    }
+}
