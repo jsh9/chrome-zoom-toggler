@@ -11,7 +11,7 @@ chrome.storage.sync.get([ZOOM_LEVEL_1_KEY, ZOOM_LEVEL_2_KEY], (result) => {
   zoomLevel1 = result[ZOOM_LEVEL_1_KEY] || zoomLevel1;
   zoomLevel2 = result[ZOOM_LEVEL_2_KEY] || zoomLevel2;
 
-  console.log("User-specified zoom levels:", zoomLevel1, zoomLevel2);
+  console.log('User-specified zoom levels:', zoomLevel1, zoomLevel2);
 });
 
 // Listen for storage changes to update zoom levels
