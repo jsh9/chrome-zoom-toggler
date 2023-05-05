@@ -67,9 +67,7 @@ chrome.tabs.onCreated.addListener((tab) => {
 // Apply the stored zoom level to all updated tabs when they are refreshed
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   console.log('------- Tab refreshed -------');
-  if (changeInfo.status === 'complete') {
-    setZoomToTargetLevelInGivenTab(tabId);
-  }
+  setZoomToTargetLevelInGivenTab(tabId);
 });
 
 function setZoomToTargetLevelInGivenTab(tabId) {
