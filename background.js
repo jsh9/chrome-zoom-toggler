@@ -1,18 +1,29 @@
 const ZOOM_LEVEL_1_KEY = 'zoom_level_1';
 const ZOOM_LEVEL_2_KEY = 'zoom_level_2';
+const ZOOM_LEVEL_3_KEY = 'zoom_level_3';
 const TARGET_ZOOM_LEVEL_KEY = 'target_zoom_level';
 const EPSILON = 0.001;
 
 let zoomLevel1 = 110;
-let zoomLevel2 = 150;
+let zoomLevel2 = 125;
+let zoomLevel3 = 150;
 
 // Load initial zoom levels
-chrome.storage.sync.get([ZOOM_LEVEL_1_KEY, ZOOM_LEVEL_2_KEY], (result) => {
-  zoomLevel1 = result[ZOOM_LEVEL_1_KEY] || zoomLevel1;
-  zoomLevel2 = result[ZOOM_LEVEL_2_KEY] || zoomLevel2;
+chrome.storage.sync.get(
+  [ZOOM_LEVEL_1_KEY, ZOOM_LEVEL_2_KEY, ZOOM_LEVEL_3_KEY],
+  (result) => {
+    zoomLevel1 = result[ZOOM_LEVEL_1_KEY] || zoomLevel1;
+    zoomLevel2 = result[ZOOM_LEVEL_2_KEY] || zoomLevel2;
+    zoomLevel3 = result[ZOOM_LEVEL_3_KEY] || zoomLevel3;
 
-  console.log('User-specified zoom levels:', zoomLevel1, zoomLevel2);
-});
+    console.log(
+      'User-specified zoom levels:',
+      zoomLevel1,
+      zoomLevel2,
+      zoomLevel3,
+    );
+  },
+);
 
 // Listen for storage changes to update zoom levels
 chrome.storage.onChanged.addListener((changes) => {
@@ -21,6 +32,9 @@ chrome.storage.onChanged.addListener((changes) => {
   }
   if (changes[ZOOM_LEVEL_2_KEY]) {
     zoomLevel2 = changes[ZOOM_LEVEL_2_KEY].newValue || zoomLevel2;
+  }
+  if (changes[ZOOM_LEVEL_3_KEY]) {
+    zoomLevel3 = changes[ZOOM_LEVEL_3_KEY].newValue || zoomLevel3;
   }
 });
 
@@ -32,10 +46,17 @@ chrome.action.onClicked.addListener((tab) => {
   chrome.tabs.getZoom(tab.id, (currentZoomRaw) => {
     let currentZoom = currentZoomRaw * 100;
     console.log('Current zoom level:', currentZoom);
-    console.log(`User-specified zoom levels: (${zoomLevel1}, ${zoomLevel2})`);
+    console.log(
+      `User-specified zoom levels: (${zoomLevel1}, ${zoomLevel2}, ${zoomLevel3})`,
+    );
 
-    // Toggle between the two user-defined zoom levels
-    let newZoom = determineNewZoomLevel(currentZoom, zoomLevel1, zoomLevel2);
+    // Toggle between the three user-defined zoom levels
+    let newZoom = determineNewZoomLevel(
+      currentZoom,
+      zoomLevel1,
+      zoomLevel2,
+      zoomLevel3,
+    );
 
     // Apply the new zoom level to all open tabs
     setZoomLevelForAllTabs(currentZoom, newZoom);
@@ -91,10 +112,27 @@ function setZoomToTargetLevelInGivenTab(tabId) {
   });
 }
 
-function determineNewZoomLevel(currentZoom, zoomLevel1, zoomLevel2) {
-  let newZoomLevel = areNumbersClose(currentZoom, zoomLevel1)
-    ? zoomLevel2
-    : zoomLevel1;
+function determineNewZoomLevel(
+  currentZoom,
+  zoomLevel1,
+  zoomLevel2,
+  zoomLevel3,
+) {
+  let numbers = [zoomLevel1, zoomLevel2, zoomLevel3];
+
+  numbers.sort(function (a, b) {
+    return a - b;
+  });
+
+  let newZoomLevel;
+
+  if (areNumbersClose(currentZoom, numbers[0])) {
+    newZoomLevel = numbers[1];
+  } else if (areNumbersClose(currentZoom, numbers[1])) {
+    newZoomLevel = numbers[2];
+  } else {
+    newZoomLevel = numbers[0];
+  }
 
   return newZoomLevel;
 }
