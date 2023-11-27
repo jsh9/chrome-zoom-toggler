@@ -118,7 +118,7 @@ function determineNewZoomLevel(
   zoomLevel2,
   zoomLevel3,
 ) {
-  let numbers = [zoomLevel1, zoomLevel2, zoomLevel3].filter(num => num > 0);
+  let numbers = [zoomLevel1, zoomLevel2, zoomLevel3].filter((num) => num > 0);
 
   if (numbers.length <= 1) {
     // there's no need to toggle
