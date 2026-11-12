@@ -3,7 +3,7 @@
   <head>
     <style>
       body {
-        width: 300px;
+        width: 360px;
         height: auto;
         padding: 10px;
         font-family: Arial, sans-serif;
@@ -12,18 +12,61 @@
       input[type='number'] {
         width: 80px;
       }
+
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        font-family: monospace;
+      }
+
+      .hint {
+        font-size: 0.9em;
+        color: #555;
+      }
+
+      #status {
+        margin-top: 10px;
+        white-space: pre-line;
+      }
+
+      #status.error {
+        color: #c00;
+      }
     </style>
   </head>
   <body>
-    <h3>Zoom levels:</h3>
-    <p>(If you'd only like to toggle between 2 levels, use -1 as the 3rd level.)</p>
     <form id="zoomForm">
+      <h3>Zoom levels:</h3>
+      <p>(If you'd only like to toggle between 2 levels, use -1 as the 3rd level.)</p>
       <label for="zoom1">Zoom 1:</label>
       <input type="number" id="zoom1" min="-1" max="500" required /><br />
       <label for="zoom2">Zoom 2:</label>
       <input type="number" id="zoom2" min="-1" max="500" required /><br />
       <label for="zoom3">Zoom 3:</label>
       <input type="number" id="zoom3" min="-1" max="500" required /><br />
+
+      <h3>Per-site base zoom levels (optional):</h3>
+      <p class="hint">
+        One site per line, as <code>domain base_zoom_level</code>. A domain
+        also covers its subdomains.
+      </p>
+      <p class="hint">
+        On a listed site, the zoom levels above become multipliers of its base
+        zoom level. For example, with <code>github.com 90</code>, a zoom level
+        of 110 shows GitHub at 99% (90% &times; 110%). Sites that are not listed
+        have a base zoom level of 100.
+      </p>
+      <p class="hint">
+        When you save, the browser asks for permission to access the listed
+        sites. The extension only uses it to tell which tabs are on these
+        sites, so that it can apply their base zoom levels.
+      </p>
+      <textarea
+        id="siteBaseZoomLevels"
+        rows="8"
+        placeholder="github.com 90&#10;news.ycombinator.com 150"
+      ></textarea
+      ><br />
       <button type="submit">Save</button>
     </form>
     <div id="status"></div>
