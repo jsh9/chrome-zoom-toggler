@@ -93,8 +93,9 @@ async function handleFormSubmit(event) {
   }
 }
 
-// Parse the text in the textarea, which has one "domain base_zoom_level" pair
-// per line, into an object mapping domains to base zoom levels
+// Parse the text in the textarea, which has one "domain, base_zoom_level" pair
+// per line, into an object mapping domains to base zoom levels. Spaces alone
+// (e.g., "github.com 90") are also accepted as the separator.
 function parseSiteBaseZoomLevels(text) {
   const siteBaseZoomLevels = {};
   const errors = [];
@@ -109,8 +110,8 @@ function parseSiteBaseZoomLevels(text) {
     const match = line.match(/^(\S+?)[\s:,=]+(\d+(?:\.\d+)?)\s*%?$/);
     if (!match) {
       errors.push(
-        `Line ${lineNumber}: expected "domain base_zoom_level" ` +
-          '(e.g., "github.com 90")',
+        `Line ${lineNumber}: expected "domain, base_zoom_level" ` +
+          '(e.g., "github.com, 90")',
       );
       return;
     }
@@ -140,7 +141,7 @@ function parseSiteBaseZoomLevels(text) {
 
 function formatSiteBaseZoomLevels(siteBaseZoomLevels) {
   return Object.entries(siteBaseZoomLevels)
-    .map(([domain, baseZoomLevel]) => `${domain} ${baseZoomLevel}`)
+    .map(([domain, baseZoomLevel]) => `${domain}, ${baseZoomLevel}`)
     .join('\n');
 }
 

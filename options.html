@@ -47,7 +47,7 @@
 
       <h3>Per-site base zoom levels (optional):</h3>
       <p class="hint">
-        One site per line, as <code>domain base_zoom_level</code>. A domain
+        One site per line, as <code>domain, base_zoom_level</code>. A domain
         also covers its subdomains.
       </p>
       <p class="hint">
@@ -60,7 +60,7 @@
       </p>
       <p class="hint">
         On a listed site, the zoom levels above become multipliers of its base
-        zoom level. For example, with <code>github.com 90</code>, a zoom level
+        zoom level. For example, with <code>github.com, 90</code>, a zoom level
         of 110 shows GitHub at 99% (90% &times; 110%). Sites that are not listed
         have a base zoom level of 100.
       </p>
@@ -72,7 +72,7 @@
       <textarea
         id="siteBaseZoomLevels"
         rows="8"
-        placeholder="github.com 90&#10;news.ycombinator.com 150"
+        placeholder="github.com, 90&#10;news.ycombinator.com, 150"
       ></textarea
       ><br />
       <button type="submit">Save</button>

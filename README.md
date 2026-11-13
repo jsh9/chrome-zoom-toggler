@@ -15,14 +15,14 @@ You can customize the zoom levels by right-clicking on the icon and go to Extens
 
 ### Per-site base zoom levels
 
-Some sites look too big or too small at the same zoom level as other sites. In Extension Options, you can give such sites their own base zoom levels, one site per line:
+Some sites look too big or too small at the same zoom level as other sites. In Extension Options, you can give such sites their own base zoom levels, one site per line, as `domain, base_zoom_level`:
 
 ```
-github.com 90
-news.ycombinator.com 150
+github.com, 90
+news.ycombinator.com, 150
 ```
 
-On a listed site, the zoom levels work as multipliers of the site's base zoom level. For example, with `github.com 90`, the zoom level 110% shows GitHub at 99% (90% × 110%), and 150% shows it at 135%. Sites that are not listed have a base zoom level of 100%, so they are shown at the zoom levels themselves.
+On a listed site, the zoom levels work as multipliers of the site's base zoom level. For example, with `github.com, 90`, the zoom level 110% shows GitHub at 99% (90% × 110%), and 150% shows it at 135%. Sites that are not listed have a base zoom level of 100%, so they are shown at the zoom levels themselves.
 
 A listed domain also covers its subdomains (e.g., `github.com` covers `gist.github.com`), and the most specific domain wins. So whether to include `www.` matters: `nytimes.com` covers the whole site, including `www.nytimes.com` and `cooking.nytimes.com`, while `www.nytimes.com` only covers `www.nytimes.com`. To cover a whole site, leave out `www.`.
 
