@@ -17,7 +17,7 @@ test('a listed domain covers its subdomains, and the most specific one wins', as
 
   const baseZoomLevels = await ext.evaluate(
     ({ urls, siteBaseZoomLevels }) =>
-      urls.map((url) => getBaseZoomLevel(url, siteBaseZoomLevels)),
+      urls.map((url) => getSiteBaseZoomLevel(url, siteBaseZoomLevels)),
     { urls, siteBaseZoomLevels },
   );
 
