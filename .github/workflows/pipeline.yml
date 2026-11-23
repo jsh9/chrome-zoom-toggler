@@ -10,10 +10,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 16
+          node-version: 22
       - run: |
           npm install
           git diff --exit-code
@@ -22,3 +22,9 @@ jobs:
         run: |
           npm run auto-format
           git diff --exit-code
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps --no-shell chromium
+
+      - name: Run tests
+        run: npm test
