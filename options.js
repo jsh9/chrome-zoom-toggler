@@ -2,6 +2,8 @@ const ZOOM_LEVEL_1_KEY = 'zoom_level_1';
 const ZOOM_LEVEL_2_KEY = 'zoom_level_2';
 const ZOOM_LEVEL_3_KEY = 'zoom_level_3';
 const SITE_BASE_ZOOM_LEVELS_KEY = 'site_base_zoom_levels';
+// Kept in `chrome.storage.local` (not synced), so each computer has its own
+const COMPUTER_BASE_ZOOM_LEVEL_KEY = 'computer_base_zoom_level';
 
 const MIN_BASE_ZOOM_LEVEL = 25;
 const MAX_BASE_ZOOM_LEVEL = 500;
@@ -27,6 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
     },
   );
 
+  chrome.storage.local.get(COMPUTER_BASE_ZOOM_LEVEL_KEY, (result) => {
+    document.getElementById('computerBaseZoomLevel').value =
+      result[COMPUTER_BASE_ZOOM_LEVEL_KEY] || '';
+  });
+
   // Save the settings when the form is submitted
   document
     .getElementById('zoomForm')
@@ -38,6 +45,10 @@ async function handleFormSubmit(event) {
   const zoom1 = parseInt(document.getElementById('zoom1').value);
   const zoom2 = parseInt(document.getElementById('zoom2').value);
   const zoom3 = parseInt(document.getElementById('zoom3').value);
+  // The browser has checked that it is empty or within the allowed range
+  const computerBaseZoomLevelText = document
+    .getElementById('computerBaseZoomLevel')
+    .value.trim();
   const textarea = document.getElementById('siteBaseZoomLevels');
 
   const { siteBaseZoomLevels, errors } = parseSiteBaseZoomLevels(
@@ -70,6 +81,14 @@ async function handleFormSubmit(event) {
       [ZOOM_LEVEL_3_KEY]: zoom3,
       [SITE_BASE_ZOOM_LEVELS_KEY]: siteBaseZoomLevels,
     });
+
+    if (computerBaseZoomLevelText === '') {
+      await chrome.storage.local.remove(COMPUTER_BASE_ZOOM_LEVEL_KEY);
+    } else {
+      await chrome.storage.local.set({
+        [COMPUTER_BASE_ZOOM_LEVEL_KEY]: Number(computerBaseZoomLevelText),
+      });
+    }
 
     await removeUnneededHostPermissions(previousDomains, domains);
 

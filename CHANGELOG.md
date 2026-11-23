@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.9] - 2026-11-23
+
+### Added
+
+- Base zoom level of this computer: in Extension Options, set a base zoom
+  level that only applies to the current computer. The zoom levels become
+  multipliers of it (e.g., 80% × 125% = 100%), together with per-site base
+  zoom levels (e.g., 80% × 90% × 125% = 90%). It is stored in
+  `chrome.storage.local`, so unlike the other settings, it is not synced
+  across computers. If it is left empty, it is 100%, so the behavior is the
+  same as before.
+
 ## [0.0.8] - 2026-11-13
 
 ### Added
