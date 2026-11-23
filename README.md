@@ -37,3 +37,15 @@ If the computer also has a base zoom level, both apply. For example, with a base
 A listed domain also covers its subdomains (e.g., `github.com` covers `gist.github.com`), and the most specific domain wins. So whether to include `www.` matters: `nytimes.com` covers the whole site, including `www.nytimes.com` and `cooking.nytimes.com`, while `www.nytimes.com` only covers `www.nytimes.com`. To cover a whole site, leave out `www.`.
 
 When you save the list, the browser asks for permission to access the listed sites. The extension only uses this permission to tell which tabs are on these sites; it does not read or change the pages. When you remove a site from the list, its permission is removed as well (unless the site overlaps with a site that is still listed, e.g., `github.com` and `gist.github.com`).
+
+## 3. Development
+
+The tests load the extension into Chromium with [Playwright](https://playwright.dev/) and check how it zooms pages and saves settings. To run them (Node.js 20 or later is required):
+
+```bash
+npm install
+npx playwright install --no-shell chromium
+npm test
+```
+
+To format the code, run `npm run auto-format`.
