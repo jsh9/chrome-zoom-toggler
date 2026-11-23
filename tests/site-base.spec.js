@@ -65,6 +65,23 @@ test('zoom levels are multipliers of the base zoom levels of sites', async ({
   await ext.expectZoom(noPermission.tabId, 125);
 });
 
+test('new tabs and pages on listed sites get their base zoom levels', async ({
+  ext,
+  server,
+}) => {
+  await saveSiteBaseZoomLevels(ext, ['a.localhost, 90', 'b.localhost, 80']);
+  const { tabId, page } = await ext.openTab(server.url());
+  await ext.toggle(tabId); // To 110
+
+  // A new tab
+  const newTab = await ext.openTab(server.url('a.localhost'));
+  await ext.expectZoom(newTab.tabId, 99); // 90% x 110%
+
+  // Another site in an existing tab
+  await page.goto(server.url('b.localhost'));
+  await ext.expectZoom(tabId, 88); // 80% x 110%
+});
+
 test('changes to the per-site list take effect right away', async ({
   ext,
   server,

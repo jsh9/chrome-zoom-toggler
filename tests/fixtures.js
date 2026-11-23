@@ -5,6 +5,15 @@ const os = require('os');
 const path = require('path');
 
 const REPO_ROOT = path.join(__dirname, '..');
+// Top-level entries of the repo that are not part of the extension
+const NON_EXTENSION_ENTRIES = new Set([
+  '.git',
+  '.github',
+  'node_modules',
+  'playwright-report',
+  'test-results',
+  'tests',
+]);
 
 // The extension can only see the URLs of tabs on sites that it has host
 // permissions for, and the options page asks for these permissions when the
@@ -24,14 +33,13 @@ const test = base.extend({
   extensionPath: [
     async ({}, use) => {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zoom-toggler-'));
-      for (const entry of fs.readdirSync(REPO_ROOT, { withFileTypes: true })) {
-        if (entry.isFile()) {
-          fs.copyFileSync(
-            path.join(REPO_ROOT, entry.name),
-            path.join(dir, entry.name),
-          );
-        }
-      }
+      fs.cpSync(REPO_ROOT, dir, {
+        recursive: true,
+        filter: (src) => {
+          const [topLevelEntry] = path.relative(REPO_ROOT, src).split(path.sep);
+          return !NON_EXTENSION_ENTRIES.has(topLevelEntry);
+        },
+      });
 
       const manifestPath = path.join(dir, 'manifest.json');
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -154,12 +162,7 @@ class ExtensionHelper {
     // are answered in order, so once a later request is answered, the page
     // has received the settings (and filled in the form in the same callback).
     await page.evaluate(
-      () =>
-        new Promise((resolve) =>
-          chrome.storage.sync.get(null, () =>
-            chrome.storage.local.get(null, resolve),
-          ),
-        ),
+      () => new Promise((resolve) => chrome.storage.sync.get(null, resolve)),
     );
     return page;
   }

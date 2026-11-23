@@ -1,6 +1,6 @@
 const { test, expect } = require('./fixtures');
 
-test('clicking the toolbar button toggles the zoom level', async ({ ext }) => {
+test('the toolbar button is wired to the toggle handler', async ({ ext }) => {
   const isRegistered = await ext.evaluate(() =>
     chrome.action.onClicked.hasListener(handleActionClick),
   );

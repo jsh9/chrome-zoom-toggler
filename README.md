@@ -34,7 +34,7 @@ The tests load the extension into Chromium with [Playwright](https://playwright.
 
 ```bash
 npm install
-npx playwright install chromium
+npx playwright install --no-shell chromium
 npm test
 ```
 

@@ -66,6 +66,65 @@ test('saves the per-site base zoom levels in a normalized form', async ({
   );
 });
 
+test('asks for permission to access the listed sites', async ({ ext }) => {
+  const page = await ext.openOptions();
+
+  // Record what the page asks for. The real function is called right away (not
+  // after an `await`), so the browser still sees the request as a response to
+  // the click. (The permissions are granted by the manifest; see fixtures.js.)
+  await page.evaluate(() => {
+    window.requestedOrigins = [];
+    const request = chrome.permissions.request.bind(chrome.permissions);
+    chrome.permissions.request = (permissions) => {
+      window.requestedOrigins.push(...permissions.origins);
+      return request(permissions);
+    };
+  });
+
+  await page.fill('#zoom1', '110');
+  await page.fill('#zoom2', '125');
+  await page.fill('#zoom3', '150');
+  await page.fill(
+    '#siteBaseZoomLevels',
+    'a.localhost, 90\ndeep.b.localhost, 80',
+  );
+  await page.click('button[type=submit]');
+
+  await expect(page.locator('#status')).toHaveText('Settings saved.');
+  expect(await page.evaluate(() => window.requestedOrigins)).toEqual([
+    '*://*.a.localhost/*',
+    '*://*.deep.b.localhost/*',
+  ]);
+});
+
+test('warns if permission to access the listed sites is not granted', async ({
+  ext,
+}) => {
+  const page = await ext.openOptions();
+
+  // As if the user declined the browser's permission prompt
+  await page.evaluate(() => {
+    chrome.permissions.request = async () => false;
+    chrome.permissions.contains = async () => false;
+  });
+
+  await page.fill('#zoom1', '110');
+  await page.fill('#zoom2', '125');
+  await page.fill('#zoom3', '150');
+  await page.fill('#siteBaseZoomLevels', 'a.localhost, 90');
+  await page.click('button[type=submit]');
+
+  const status = page.locator('#status');
+  await expect(status).toHaveText(
+    'Settings saved. However, the base zoom levels will not take effect ' +
+      'without permission to access the listed sites. Click "Save" again to ' +
+      'grant it.',
+  );
+  await expect(status).toHaveClass('error');
+  const storage = await ext.getSyncStorage();
+  expect(storage.site_base_zoom_levels).toEqual({ 'a.localhost': 90 });
+});
+
 test('saves nothing if the per-site list has errors', async ({ ext }) => {
   const savedSettings = {
     zoom_level_1: 110,
@@ -127,6 +186,7 @@ test('gives up host permissions for sites removed from the list', async ({
       'a.localhost': 90,
       'deep.b.localhost': 80,
       'c.localhost': 70,
+      '10.0.0.1': 60,
     },
   });
   const page = await ext.openOptions();
@@ -150,7 +210,10 @@ test('gives up host permissions for sites removed from the list', async ({
   await page.click('button[type=submit]');
 
   await expect(page.locator('#status')).toHaveText('Settings saved.');
-  expect(await page.evaluate(() => window.removedOrigins)).toEqual([
+  const removedOrigins = await page.evaluate(() => window.removedOrigins);
+  expect(removedOrigins.sort()).toEqual([
     '*://*.c.localhost/*',
+    // IP addresses have no subdomains
+    '*://10.0.0.1/*',
   ]);
 });
