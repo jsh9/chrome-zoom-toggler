@@ -1,6 +1,6 @@
 # chrome-zoom-toggler
 
-A Chrome and Edge extension to enable one-click toggling between two customizable page zoom levels.
+A Chrome and Edge extension to enable one-click toggling between up to 3 customizable page zoom levels, with base zoom levels per site and per computer.
 
 ## 1. Installation
 

@@ -23,6 +23,8 @@
   (and was synced to other computers).
 - The warning about missing permissions on the options page now says that
   it is about the per-site base zoom levels.
+- The extension's description says that it toggles between up to 3 zoom
+  levels (not 2), and mentions the base zoom levels.
 
 ### Fixed
 
