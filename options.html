@@ -45,6 +45,28 @@
       <label for="zoom3">Zoom 3:</label>
       <input type="number" id="zoom3" min="-1" max="500" required /><br />
 
+      <h3>Base zoom level of this computer (optional):</h3>
+      <p class="hint">
+        The zoom levels above become multipliers of this base zoom level. For
+        example, with 80 here, a zoom level of 125 shows pages at 100% (80%
+        &times; 125%). Leave it empty to use 100.
+      </p>
+      <p class="hint">
+        Unlike the other settings, this one is <strong>not synced</strong> to
+        your other computers. So each computer can have its own value: a
+        larger one on a computer where pages look too small, and a smaller one
+        where they look too big.
+      </p>
+      <label for="computerBaseZoomLevel">Base zoom level:</label>
+      <input
+        type="number"
+        id="computerBaseZoomLevel"
+        min="25"
+        max="500"
+        step="any"
+        placeholder="100"
+      /><br />
+
       <h3>Per-site base zoom levels (optional):</h3>
       <p class="hint">
         One site per line, as <code>domain, base_zoom_level</code>. A domain
@@ -63,6 +85,11 @@
         zoom level. For example, with <code>github.com, 90</code>, a zoom level
         of 110 shows GitHub at 99% (90% &times; 110%). Sites that are not listed
         have a base zoom level of 100.
+      </p>
+      <p class="hint">
+        If this computer also has a base zoom level, both apply. For example,
+        with 80 for this computer and <code>github.com, 90</code>, a zoom level
+        of 125 shows GitHub at 90% (80% &times; 90% &times; 125%).
       </p>
       <p class="hint">
         When you save, the browser asks for permission to access the listed

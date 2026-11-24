@@ -152,17 +152,29 @@ class ExtensionHelper {
     return this.evaluate((items) => chrome.storage.sync.set(items), items);
   }
 
+  getLocalStorage() {
+    return this.evaluate(() => chrome.storage.local.get(null));
+  }
+
+  setLocalStorage(items) {
+    return this.evaluate((items) => chrome.storage.local.set(items), items);
+  }
+
   // Open the options page, and wait until it has filled in the form with the
   // saved settings
   async openOptions() {
     const page = await this.context.newPage();
     await page.goto(`chrome-extension://${this.id}/options.html`);
 
-    // The page reads the settings when it loads. Storage requests from a page
-    // are answered in order, so once a later request is answered, the page
-    // has received the settings (and filled in the form in the same callback).
-    await page.evaluate(
-      () => new Promise((resolve) => chrome.storage.sync.get(null, resolve)),
+    // The page reads the settings from both storage areas when it loads.
+    // Storage requests from a page are answered in order, so once a later
+    // request to each area is answered, the page has received the settings
+    // (and filled in the form in the same callbacks).
+    await page.evaluate(() =>
+      Promise.all([
+        new Promise((resolve) => chrome.storage.sync.get(null, resolve)),
+        new Promise((resolve) => chrome.storage.local.get(null, resolve)),
+      ]),
     );
     return page;
   }

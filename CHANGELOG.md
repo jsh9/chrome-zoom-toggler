@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.0.9] - 2026-11-23
+
+### Added
+
+- Base zoom level of this computer: in Extension Options, set a base zoom
+  level that only applies to the current computer. The zoom levels become
+  multipliers of it (e.g., 80% × 125% = 100%), together with per-site base
+  zoom levels (e.g., 80% × 90% × 125% = 90%). It is stored in
+  `chrome.storage.local`, so unlike the other settings, it is not synced
+  across computers. If it is left empty, it is 100%, so the behavior is the
+  same as before.
+
+### Changed
+
+- The first click (before any zoom level has been toggled to) goes to the
+  lowest zoom level. Before, it depended on the page zoom: e.g., on a site
+  with a base zoom level of 80%, an unzoomed page (100%) seemed to be at the
+  zoom level 125%, so the first click went to 150%.
+- With fewer than 2 different zoom levels, clicking does nothing. Before, it
+  stored the current zoom level of the page, which then applied to new tabs
+  (and was synced to other computers).
+- The warning about missing permissions on the options page now says that
+  it is about the per-site base zoom levels.
+- The extension's description says that it toggles between up to 3 zoom
+  levels (not 2), and mentions the base zoom levels.
+
+### Fixed
+
+- Toggling no longer gets stuck when a page zoom has to be raised or lowered
+  to what the browser supports (25% to 500%), e.g., 400% × 150% = 600%,
+  shown at 500%.
+- Toggling no longer gets stuck when 2 of the zoom levels are the same (e.g.,
+  110, 110, and 150).
+
 ## [0.0.8] - 2026-11-13
 
 ### Added

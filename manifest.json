@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "Zoom Toggler",
-    "version": "0.0.8",
-    "description": "Quickly toggle browser page zoom between two levels",
+    "version": "0.0.9",
+    "description": "Quickly toggle page zoom between up to 3 levels, with base zoom levels per site and per computer",
     "permissions": [
         "storage"
     ],

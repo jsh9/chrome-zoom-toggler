@@ -1,11 +1,16 @@
 const ZOOM_LEVEL_1_KEY = 'zoom_level_1';
 const ZOOM_LEVEL_2_KEY = 'zoom_level_2';
 const ZOOM_LEVEL_3_KEY = 'zoom_level_3';
-// The zoom level (i.e., the multiplier) the user last toggled to. On sites
-// without a base zoom level, this is also the actual page zoom.
+// The zoom level (i.e., the multiplier) the user last toggled to. The page zoom
+// is this times the base zoom levels of this computer and the site.
 const TARGET_ZOOM_LEVEL_KEY = 'target_zoom_level';
 // An object mapping domains (e.g., 'github.com') to their base zoom levels
 const SITE_BASE_ZOOM_LEVELS_KEY = 'site_base_zoom_levels';
+// The base zoom level of this computer. Unlike the other settings, it is kept
+// in `chrome.storage.local`, which is not synced across computers, so that
+// each computer (e.g., one with a large high-resolution monitor and one with a
+// small laptop screen) can have its own value.
+const COMPUTER_BASE_ZOOM_LEVEL_KEY = 'computer_base_zoom_level';
 
 const DEFAULT_ZOOM_LEVEL_1 = 110;
 const DEFAULT_ZOOM_LEVEL_2 = 125;
@@ -22,12 +27,15 @@ const EPSILON = 0.001;
 // variables) because the service worker can be restarted at any time, and an
 // event can arrive before a cache would have been populated.
 async function loadSettings() {
-  const result = await chrome.storage.sync.get([
-    ZOOM_LEVEL_1_KEY,
-    ZOOM_LEVEL_2_KEY,
-    ZOOM_LEVEL_3_KEY,
-    TARGET_ZOOM_LEVEL_KEY,
-    SITE_BASE_ZOOM_LEVELS_KEY,
+  const [result, localResult] = await Promise.all([
+    chrome.storage.sync.get([
+      ZOOM_LEVEL_1_KEY,
+      ZOOM_LEVEL_2_KEY,
+      ZOOM_LEVEL_3_KEY,
+      TARGET_ZOOM_LEVEL_KEY,
+      SITE_BASE_ZOOM_LEVELS_KEY,
+    ]),
+    chrome.storage.local.get(COMPUTER_BASE_ZOOM_LEVEL_KEY),
   ]);
 
   return {
@@ -36,9 +44,17 @@ async function loadSettings() {
       result[ZOOM_LEVEL_2_KEY] || DEFAULT_ZOOM_LEVEL_2,
       result[ZOOM_LEVEL_3_KEY] || DEFAULT_ZOOM_LEVEL_3,
     ],
-    targetZoomLevel: result[TARGET_ZOOM_LEVEL_KEY],
+    targetZoomLevel: toPositiveNumber(result[TARGET_ZOOM_LEVEL_KEY]),
     siteBaseZoomLevels: result[SITE_BASE_ZOOM_LEVELS_KEY] || {},
+    computerBaseZoomLevel:
+      toPositiveNumber(localResult[COMPUTER_BASE_ZOOM_LEVEL_KEY]) ??
+      DEFAULT_BASE_ZOOM_LEVEL,
   };
+}
+
+// `value` if it is a positive number, or undefined (e.g., if it is not set)
+function toPositiveNumber(value) {
+  return typeof value === 'number' && value > 0 ? value : undefined;
 }
 
 // Listen for extension icon clicks
@@ -49,9 +65,12 @@ async function handleActionClick(tab) {
 
   const settings = await loadSettings();
   const currentZoom = (await chrome.tabs.getZoom(tab.id)) * 100;
-  const baseZoomLevel = getBaseZoomLevel(tab.url, settings.siteBaseZoomLevels);
-  // Undo the base zoom level to find out which zoom level the tab is at
-  const currentZoomLevel = (currentZoom / baseZoomLevel) * 100;
+  const baseZoomLevel = getBaseZoomLevel(tab.url, settings);
+  const currentZoomLevel = getCurrentZoomLevel(
+    currentZoom,
+    baseZoomLevel,
+    settings.targetZoomLevel,
+  );
 
   console.log(
     `Current zoom: ${currentZoom}; base zoom level: ${baseZoomLevel}; ` +
@@ -65,22 +84,48 @@ async function handleActionClick(tab) {
     ...settings.zoomLevels,
   );
 
-  await chrome.storage.sync.set({ [TARGET_ZOOM_LEVEL_KEY]: newZoomLevel });
-
-  if (areNumbersClose(currentZoomLevel, newZoomLevel)) {
-    console.log('Zoom level unchanged; no actions');
+  if (newZoomLevel === null) {
+    console.log('Fewer than 2 zoom levels to toggle between; no actions');
     return;
   }
 
+  await chrome.storage.sync.set({ [TARGET_ZOOM_LEVEL_KEY]: newZoomLevel });
+
   // Apply the new zoom level to all open tabs
-  await setZoomLevelForAllTabs(newZoomLevel, settings.siteBaseZoomLevels);
+  await setZoomLevelForAllTabs(newZoomLevel, settings);
 }
 
-async function setZoomLevelForAllTabs(zoomLevel, siteBaseZoomLevels) {
+// The zoom level that the tab is at (i.e., its page zoom without its base zoom
+// level), or null if it is not known
+function getCurrentZoomLevel(currentZoom, baseZoomLevel, targetZoomLevel) {
+  // Before the first toggle, the page zoom says nothing about the zoom level.
+  // For example, with a base zoom level of 80, an unzoomed page (100%) would
+  // seem to be at the zoom level 125.
+  if (targetZoomLevel === undefined) {
+    return null;
+  }
+
+  // If the page zoom had to be raised or lowered to what the browser supports
+  // (e.g., from 600% to 500%), undoing the base zoom level would give a wrong
+  // zoom level. So a tab at the page zoom of the target zoom level is regarded
+  // as being at the target zoom level.
+  if (
+    areNumbersClose(
+      currentZoom,
+      computePageZoom(baseZoomLevel, targetZoomLevel),
+    )
+  ) {
+    return targetZoomLevel;
+  }
+
+  return (currentZoom / baseZoomLevel) * 100;
+}
+
+async function setZoomLevelForAllTabs(zoomLevel, settings) {
   console.log(`>> Setting zoom level for all tabs to ${zoomLevel}`);
   const tabs = await chrome.tabs.query({});
   await Promise.all(
-    tabs.map((tab) => setZoomLevelForTab(tab, zoomLevel, siteBaseZoomLevels)),
+    tabs.map((tab) => setZoomLevelForTab(tab, zoomLevel, settings)),
   );
 }
 
@@ -96,22 +141,36 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   setZoomToTargetLevelInGivenTab(tab);
 });
 
-// Re-apply the zoom level to all tabs when the per-site base zoom levels
-// change, so that the user sees the effect right away
-chrome.storage.onChanged.addListener(async (changes, areaName) => {
-  if (areaName !== 'sync' || !changes[SITE_BASE_ZOOM_LEVELS_KEY]) {
-    return;
-  }
+// Re-apply the zoom level to all tabs when the base zoom levels (of this
+// computer or of sites) change, so that the user sees the effect right away
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  const haveBaseZoomLevelsChanged =
+    (areaName === 'sync' && changes[SITE_BASE_ZOOM_LEVELS_KEY]) ||
+    (areaName === 'local' && changes[COMPUTER_BASE_ZOOM_LEVEL_KEY]);
 
-  console.log('------- Site base zoom levels changed -------');
-  const settings = await loadSettings();
-  if (settings.targetZoomLevel !== undefined) {
-    await setZoomLevelForAllTabs(
-      settings.targetZoomLevel,
-      settings.siteBaseZoomLevels,
-    );
+  if (haveBaseZoomLevelsChanged) {
+    console.log('------- Base zoom levels changed -------');
+    reapplyZoomLevelToAllTabs();
   }
 });
+
+let reapplyQueue = Promise.resolve();
+
+// Saving the options can change both base zoom levels at once, which triggers
+// two re-applications. They run one after the other (each with freshly loaded
+// settings), so that one with outdated settings cannot finish last.
+function reapplyZoomLevelToAllTabs() {
+  reapplyQueue = reapplyQueue
+    .then(async () => {
+      const settings = await loadSettings();
+      if (settings.targetZoomLevel !== undefined) {
+        await setZoomLevelForAllTabs(settings.targetZoomLevel, settings);
+      }
+    })
+    .catch((error) => {
+      console.log('Cannot re-apply the zoom level:', error.message);
+    });
+}
 
 async function setZoomToTargetLevelInGivenTab(tab) {
   const settings = await loadSettings();
@@ -121,15 +180,11 @@ async function setZoomToTargetLevelInGivenTab(tab) {
     return;
   }
 
-  await setZoomLevelForTab(
-    tab,
-    settings.targetZoomLevel,
-    settings.siteBaseZoomLevels,
-  );
+  await setZoomLevelForTab(tab, settings.targetZoomLevel, settings);
 }
 
-async function setZoomLevelForTab(tab, zoomLevel, siteBaseZoomLevels) {
-  const baseZoomLevel = getBaseZoomLevel(tab.url, siteBaseZoomLevels);
+async function setZoomLevelForTab(tab, zoomLevel, settings) {
+  const baseZoomLevel = getBaseZoomLevel(tab.url, settings);
   const targetZoom = computePageZoom(baseZoomLevel, zoomLevel);
 
   try {
@@ -152,13 +207,24 @@ async function setZoomLevelForTab(tab, zoomLevel, siteBaseZoomLevels) {
   }
 }
 
+// The base zoom level of the page at `url`: the base zoom level of this
+// computer times that of the site. For example, 80 (computer) and 90 (site)
+// gives 72.
+function getBaseZoomLevel(url, settings) {
+  const siteBaseZoomLevel = getSiteBaseZoomLevel(
+    url,
+    settings.siteBaseZoomLevels,
+  );
+  return (settings.computerBaseZoomLevel * siteBaseZoomLevel) / 100;
+}
+
 // The base zoom level of the site that `url` belongs to. A listed domain also
 // covers its subdomains, and the most specific domain wins.
 //
 // Note: `url` is only available for sites on the list, because the extension
 // only has host permissions for those sites. For other sites, `url` is
 // undefined, and the default base zoom level is used.
-function getBaseZoomLevel(url, siteBaseZoomLevels) {
+function getSiteBaseZoomLevel(url, siteBaseZoomLevels) {
   let hostname;
   try {
     hostname = new URL(url).hostname;
@@ -179,32 +245,42 @@ function getBaseZoomLevel(url, siteBaseZoomLevels) {
     : siteBaseZoomLevels[bestMatch];
 }
 
-// The actual page zoom: the zoom level works as a multiplier of the site's
+// The actual page zoom: the zoom level works as a multiplier of the page's
 // base zoom level. For example, 90 (base) and 110 (zoom level) gives 99.
 function computePageZoom(baseZoomLevel, zoomLevel) {
   const pageZoom = (baseZoomLevel * zoomLevel) / 100;
   return Math.min(Math.max(pageZoom, MIN_PAGE_ZOOM), MAX_PAGE_ZOOM);
 }
 
+// The zoom level to toggle to from `currentZoomLevel` (null if not known), or
+// null if there are fewer than 2 zoom levels to toggle between
 function determineNewZoomLevel(
-  currentZoom,
+  currentZoomLevel,
   zoomLevel1,
   zoomLevel2,
   zoomLevel3,
 ) {
-  let numbers = [zoomLevel1, zoomLevel2, zoomLevel3].filter((num) => num > 0);
+  // Zoom levels of -1 are not used, and a repeated zoom level counts once
+  let numbers = [
+    ...new Set([zoomLevel1, zoomLevel2, zoomLevel3].filter((num) => num > 0)),
+  ];
 
   if (numbers.length <= 1) {
-    // there's no need to toggle
-    return currentZoom;
+    // there's nothing to toggle between
+    return null;
   }
 
   numbers.sort(function (a, b) {
     return a - b;
   });
 
+  if (currentZoomLevel === null) {
+    // Start from the lowest zoom level
+    return numbers[0];
+  }
+
   if (numbers.length == 2) {
-    let newZoomLevel = areNumbersClose(currentZoom, numbers[0])
+    let newZoomLevel = areNumbersClose(currentZoomLevel, numbers[0])
       ? numbers[1]
       : numbers[0];
 
@@ -213,9 +289,9 @@ function determineNewZoomLevel(
 
   let newZoomLevel;
 
-  if (areNumbersClose(currentZoom, numbers[0])) {
+  if (areNumbersClose(currentZoomLevel, numbers[0])) {
     newZoomLevel = numbers[1];
-  } else if (areNumbersClose(currentZoom, numbers[1])) {
+  } else if (areNumbersClose(currentZoomLevel, numbers[1])) {
     newZoomLevel = numbers[2];
   } else {
     newZoomLevel = numbers[0];
