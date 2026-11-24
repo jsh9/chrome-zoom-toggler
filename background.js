@@ -1,8 +1,8 @@
 const ZOOM_LEVEL_1_KEY = 'zoom_level_1';
 const ZOOM_LEVEL_2_KEY = 'zoom_level_2';
 const ZOOM_LEVEL_3_KEY = 'zoom_level_3';
-// The zoom level (i.e., the multiplier) the user last toggled to. On sites
-// without a base zoom level, this is also the actual page zoom.
+// The zoom level (i.e., the multiplier) the user last toggled to. The page zoom
+// is this times the base zoom levels of this computer and the site.
 const TARGET_ZOOM_LEVEL_KEY = 'target_zoom_level';
 // An object mapping domains (e.g., 'github.com') to their base zoom levels
 const SITE_BASE_ZOOM_LEVELS_KEY = 'site_base_zoom_levels';
@@ -44,11 +44,17 @@ async function loadSettings() {
       result[ZOOM_LEVEL_2_KEY] || DEFAULT_ZOOM_LEVEL_2,
       result[ZOOM_LEVEL_3_KEY] || DEFAULT_ZOOM_LEVEL_3,
     ],
-    targetZoomLevel: result[TARGET_ZOOM_LEVEL_KEY],
+    targetZoomLevel: toPositiveNumber(result[TARGET_ZOOM_LEVEL_KEY]),
     siteBaseZoomLevels: result[SITE_BASE_ZOOM_LEVELS_KEY] || {},
     computerBaseZoomLevel:
-      localResult[COMPUTER_BASE_ZOOM_LEVEL_KEY] || DEFAULT_BASE_ZOOM_LEVEL,
+      toPositiveNumber(localResult[COMPUTER_BASE_ZOOM_LEVEL_KEY]) ??
+      DEFAULT_BASE_ZOOM_LEVEL,
   };
+}
+
+// `value` if it is a positive number, or undefined (e.g., if it is not set)
+function toPositiveNumber(value) {
+  return typeof value === 'number' && value > 0 ? value : undefined;
 }
 
 // Listen for extension icon clicks
@@ -79,16 +85,11 @@ async function handleActionClick(tab) {
   );
 
   if (newZoomLevel === null) {
-    console.log('No zoom level to toggle to; no actions');
+    console.log('Fewer than 2 zoom levels to toggle between; no actions');
     return;
   }
 
   await chrome.storage.sync.set({ [TARGET_ZOOM_LEVEL_KEY]: newZoomLevel });
-
-  if (areNumbersClose(currentZoomLevel, newZoomLevel)) {
-    console.log('Zoom level unchanged; no actions');
-    return;
-  }
 
   // Apply the new zoom level to all open tabs
   await setZoomLevelForAllTabs(newZoomLevel, settings);
@@ -251,33 +252,35 @@ function computePageZoom(baseZoomLevel, zoomLevel) {
   return Math.min(Math.max(pageZoom, MIN_PAGE_ZOOM), MAX_PAGE_ZOOM);
 }
 
-// The zoom level to toggle to from `currentZoom` (null if not known). With
-// fewer than 2 zoom levels, there is nothing to toggle, so `currentZoom` is
-// returned as is.
+// The zoom level to toggle to from `currentZoomLevel` (null if not known), or
+// null if there are fewer than 2 zoom levels to toggle between
 function determineNewZoomLevel(
-  currentZoom,
+  currentZoomLevel,
   zoomLevel1,
   zoomLevel2,
   zoomLevel3,
 ) {
-  let numbers = [zoomLevel1, zoomLevel2, zoomLevel3].filter((num) => num > 0);
+  // Zoom levels of -1 are not used, and a repeated zoom level counts once
+  let numbers = [
+    ...new Set([zoomLevel1, zoomLevel2, zoomLevel3].filter((num) => num > 0)),
+  ];
 
   if (numbers.length <= 1) {
-    // there's no need to toggle
-    return currentZoom;
+    // there's nothing to toggle between
+    return null;
   }
 
   numbers.sort(function (a, b) {
     return a - b;
   });
 
-  if (currentZoom === null) {
+  if (currentZoomLevel === null) {
     // Start from the lowest zoom level
     return numbers[0];
   }
 
   if (numbers.length == 2) {
-    let newZoomLevel = areNumbersClose(currentZoom, numbers[0])
+    let newZoomLevel = areNumbersClose(currentZoomLevel, numbers[0])
       ? numbers[1]
       : numbers[0];
 
@@ -286,9 +289,9 @@ function determineNewZoomLevel(
 
   let newZoomLevel;
 
-  if (areNumbersClose(currentZoom, numbers[0])) {
+  if (areNumbersClose(currentZoomLevel, numbers[0])) {
     newZoomLevel = numbers[1];
-  } else if (areNumbersClose(currentZoom, numbers[1])) {
+  } else if (areNumbersClose(currentZoomLevel, numbers[1])) {
     newZoomLevel = numbers[2];
   } else {
     newZoomLevel = numbers[0];

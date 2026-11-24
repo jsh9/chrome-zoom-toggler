@@ -78,14 +78,25 @@ test('toggles between 2 zoom levels if the 3rd one is -1', async ({
   }
 });
 
-test('does not change the zoom with only 1 zoom level', async ({
-  ext,
-  server,
-}) => {
+test('toggles through a repeated zoom level once', async ({ ext, server }) => {
+  await ext.setSyncStorage({
+    zoom_level_1: 110,
+    zoom_level_2: 150,
+    zoom_level_3: 110,
+  });
+  const { tabId } = await ext.openTab(server.url());
+
+  for (const expected of [110, 150, 110]) {
+    await ext.toggle(tabId);
+    await ext.expectZoom(tabId, expected);
+  }
+});
+
+test('does nothing with only 1 zoom level', async ({ ext, server }) => {
   await ext.setSyncStorage({
     zoom_level_1: 130,
     zoom_level_2: -1,
-    zoom_level_3: -1,
+    zoom_level_3: 130,
   });
   const { tabId } = await ext.openTab(server.url());
 
@@ -93,6 +104,34 @@ test('does not change the zoom with only 1 zoom level', async ({
 
   expect(await ext.getZoom(tabId)).toBeCloseTo(100, 5);
   // So that new tabs are not zoomed either
-  const storage = await ext.getSyncStorage();
+  let storage = await ext.getSyncStorage();
   expect(storage).not.toHaveProperty('target_zoom_level');
+
+  // Also when a zoom level was stored before (e.g., when there were more
+  // zoom levels), and the tab was zoomed by hand
+  await ext.setSyncStorage({ target_zoom_level: 110 });
+  await ext.evaluate((tabId) => chrome.tabs.setZoom(tabId, 1.5), tabId);
+
+  await ext.toggle(tabId);
+
+  expect(await ext.getZoom(tabId)).toBeCloseTo(150, 5);
+  storage = await ext.getSyncStorage();
+  expect(storage.target_zoom_level).toBe(110);
+});
+
+test('ignores a stored zoom level that is not a positive number', async ({
+  ext,
+  server,
+}) => {
+  const { tabId } = await ext.openTab(server.url());
+  await ext.setSyncStorage({ target_zoom_level: null });
+
+  // What happens when a tab is created or updated
+  await ext.evaluate(
+    async (tabId) =>
+      setZoomToTargetLevelInGivenTab(await chrome.tabs.get(tabId)),
+    tabId,
+  );
+
+  expect(await ext.getZoom(tabId)).toBeCloseTo(100, 5);
 });

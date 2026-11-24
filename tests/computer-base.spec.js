@@ -118,8 +118,7 @@ test('zoom levels are multipliers of the base zoom levels of this computer and s
   await ext.expectZoom(notListed.tabId, 88); // 80% x 110%
   await ext.expectZoom(noPermission.tabId, 88);
 
-  // Toggling takes both base zoom levels into account to tell which zoom
-  // level the tab is at
+  // Toggling on any tab works the same
   await ext.toggle(listed.tabId); // To 125
 
   await ext.expectZoom(listed.tabId, 90); // 80% x 90% x 125%
@@ -134,6 +133,22 @@ test('zoom levels are multipliers of the base zoom levels of this computer and s
 
   await ext.toggle(noPermission.tabId); // Back to 110
   await ext.expectZoom(noPermission.tabId, 88);
+});
+
+test('toggling on a tab zoomed by hand undoes the base zoom level of this computer', async ({
+  ext,
+  server,
+}) => {
+  await ext.setLocalStorage({ computer_base_zoom_level: 80 });
+  const { tabId } = await ext.openTab(server.url());
+  await ext.toggle(tabId); // To 110
+  await ext.expectZoom(tabId, 88); // 80% x 110%
+
+  // E.g., with Ctrl and +. This is the zoom level 125 on this computer.
+  await ext.evaluate((tabId) => chrome.tabs.setZoom(tabId, 1), tabId);
+
+  await ext.toggle(tabId); // To 150
+  await ext.expectZoom(tabId, 120); // 80% x 150%
 });
 
 test('toggling does not get stuck when this computer has a large or small base zoom level', async ({
@@ -250,7 +265,8 @@ test('re-applications of the zoom level run one after the other', async ({
     try {
       reapplyZoomLevelToAllTabs();
       reapplyZoomLevelToAllTabs();
-      while (finished < 2) {
+      const deadline = Date.now() + 5000;
+      while (finished < 2 && Date.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
     } finally {

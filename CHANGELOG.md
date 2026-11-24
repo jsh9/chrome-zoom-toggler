@@ -18,6 +18,9 @@
   lowest zoom level. Before, it depended on the page zoom: e.g., on a site
   with a base zoom level of 80%, an unzoomed page (100%) seemed to be at the
   zoom level 125%, so the first click went to 150%.
+- With fewer than 2 different zoom levels, clicking does nothing. Before, it
+  stored the current zoom level of the page, which then applied to new tabs
+  (and was synced to other computers).
 - The warning about missing permissions on the options page now says that
   it is about the per-site base zoom levels.
 
@@ -26,6 +29,8 @@
 - Toggling no longer gets stuck when a page zoom has to be raised or lowered
   to what the browser supports (25% to 500%), e.g., 400% × 150% = 600%,
   shown at 500%.
+- Toggling no longer gets stuck when 2 of the zoom levels are the same (e.g.,
+  110, 110, and 150).
 
 ## [0.0.8] - 2026-11-13
 

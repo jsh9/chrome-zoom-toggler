@@ -55,8 +55,7 @@ test('zoom levels are multipliers of the base zoom levels of sites', async ({
   await ext.expectZoom(notListed.tabId, 110);
   await ext.expectZoom(noPermission.tabId, 110);
 
-  // Toggling on a listed site takes its base zoom level into account to tell
-  // which zoom level the tab is at
+  // Toggling on a listed site works the same
   await ext.toggle(listed.tabId);
 
   await ext.expectZoom(listed.tabId, 112.5); // 90% x 125%
@@ -116,7 +115,7 @@ test('the page zoom stays within what the browser supports', async ({
   await ext.expectZoom(large.tabId, 500); // 500% x 125% = 625%, lowered to 500%
 });
 
-test('toggling does not get stuck at a raised or lowered page zoom', async ({
+test('toggling does not get stuck at a page zoom lowered to 500%', async ({
   ext,
   server,
 }) => {
@@ -132,4 +131,20 @@ test('toggling does not get stuck at a raised or lowered page zoom', async ({
     await ext.toggle(tabId);
     await ext.expectZoom(tabId, expected);
   }
+});
+
+test('toggling on a listed site zoomed by hand undoes its base zoom level', async ({
+  ext,
+  server,
+}) => {
+  await saveSiteBaseZoomLevels(ext, ['a.localhost, 90']);
+  const { tabId } = await ext.openTab(server.url('a.localhost'));
+  await ext.toggle(tabId); // To 110
+  await ext.expectZoom(tabId, 99); // 90% x 110%
+
+  // E.g., with Ctrl and +. This is the zoom level 125 on this site.
+  await ext.evaluate((tabId) => chrome.tabs.setZoom(tabId, 1.125), tabId);
+
+  await ext.toggle(tabId); // To 150
+  await ext.expectZoom(tabId, 135); // 90% x 150%
 });

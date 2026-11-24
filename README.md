@@ -17,7 +17,7 @@ You can customize the zoom levels by right-clicking on the icon and go to Extens
 
 If you use the extension on several computers with different screens (e.g., a large high-resolution monitor at work and a small laptop screen at home), you can give each computer its own base zoom level in Extension Options.
 
-The zoom levels work as multipliers of this base zoom level. For example, with a base zoom level of 80, the zoom level 125% shows pages at 100% (80% × 125%). If it is left empty, the base zoom level is 100%, so pages are shown at the zoom levels themselves.
+The zoom levels work as multipliers of this base zoom level. For example, with a base zoom level of 80, the zoom level 125% shows pages at 100% (80% × 125%). If it is left empty, the base zoom level is 100%, so only per-site base zoom levels (see below) apply.
 
 Unlike the other settings, which Chrome syncs to all computers signed into the same account, this setting is stored only on the current computer (in [`chrome.storage.local`](https://developer.chrome.com/docs/extensions/reference/api/storage)). So you can set the zoom levels once and have them synced, while each computer keeps its own base zoom level. Note that the setting is removed when you uninstall the extension.
 
@@ -30,7 +30,7 @@ github.com, 90
 news.ycombinator.com, 150
 ```
 
-On a listed site, the zoom levels work as multipliers of the site's base zoom level. For example, with `github.com, 90`, the zoom level 110% shows GitHub at 99% (90% × 110%), and 150% shows it at 135%. Sites that are not listed have a base zoom level of 100%, so they are shown at the zoom levels themselves.
+On a listed site, the zoom levels work as multipliers of the site's base zoom level. For example, with `github.com, 90`, the zoom level 110% shows GitHub at 99% (90% × 110%), and 150% shows it at 135%. Sites that are not listed have a base zoom level of 100%, so only the base zoom level of the computer (if any) applies to them.
 
 If the computer also has a base zoom level, both apply. For example, with a base zoom level of 80 for the computer and `github.com, 90`, the zoom level 125% shows GitHub at 90% (80% × 90% × 125%).
 
