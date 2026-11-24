@@ -115,3 +115,21 @@ test('the page zoom stays within what the browser supports', async ({
 
   await ext.expectZoom(large.tabId, 500); // 500% x 125% = 625%, lowered to 500%
 });
+
+test('toggling does not get stuck at a raised or lowered page zoom', async ({
+  ext,
+  server,
+}) => {
+  await saveSiteBaseZoomLevels(ext, ['a.localhost, 400']);
+  const { tabId } = await ext.openTab(server.url('a.localhost'));
+
+  for (const expected of [
+    440, // 400% x 110%
+    500, // 400% x 125%
+    500, // 400% x 150% = 600%, lowered to 500%
+    440, // Back to 110%
+  ]) {
+    await ext.toggle(tabId);
+    await ext.expectZoom(tabId, expected);
+  }
+});

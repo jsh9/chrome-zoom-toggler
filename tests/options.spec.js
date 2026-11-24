@@ -116,9 +116,9 @@ test('warns if permission to access the listed sites is not granted', async ({
 
   const status = page.locator('#status');
   await expect(status).toHaveText(
-    'Settings saved. However, the base zoom levels will not take effect ' +
-      'without permission to access the listed sites. Click "Save" again to ' +
-      'grant it.',
+    'Settings saved. However, the per-site base zoom levels will not take ' +
+      'effect without permission to access the listed sites. Click "Save" ' +
+      'again to grant it.',
   );
   await expect(status).toHaveClass('error');
   const storage = await ext.getSyncStorage();

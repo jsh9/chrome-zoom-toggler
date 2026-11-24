@@ -12,6 +12,21 @@
   across computers. If it is left empty, it is 100%, so the behavior is the
   same as before.
 
+### Changed
+
+- The first click (before any zoom level has been toggled to) goes to the
+  lowest zoom level. Before, it depended on the page zoom: e.g., on a site
+  with a base zoom level of 80%, an unzoomed page (100%) seemed to be at the
+  zoom level 125%, so the first click went to 150%.
+- The warning about missing permissions on the options page now says that
+  it is about the per-site base zoom levels.
+
+### Fixed
+
+- Toggling no longer gets stuck when a page zoom has to be raised or lowered
+  to what the browser supports (25% to 500%), e.g., 400% × 150% = 600%,
+  shown at 500%.
+
 ## [0.0.8] - 2026-11-13
 
 ### Added

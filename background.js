@@ -60,8 +60,11 @@ async function handleActionClick(tab) {
   const settings = await loadSettings();
   const currentZoom = (await chrome.tabs.getZoom(tab.id)) * 100;
   const baseZoomLevel = getBaseZoomLevel(tab.url, settings);
-  // Undo the base zoom level to find out which zoom level the tab is at
-  const currentZoomLevel = (currentZoom / baseZoomLevel) * 100;
+  const currentZoomLevel = getCurrentZoomLevel(
+    currentZoom,
+    baseZoomLevel,
+    settings.targetZoomLevel,
+  );
 
   console.log(
     `Current zoom: ${currentZoom}; base zoom level: ${baseZoomLevel}; ` +
@@ -75,6 +78,11 @@ async function handleActionClick(tab) {
     ...settings.zoomLevels,
   );
 
+  if (newZoomLevel === null) {
+    console.log('No zoom level to toggle to; no actions');
+    return;
+  }
+
   await chrome.storage.sync.set({ [TARGET_ZOOM_LEVEL_KEY]: newZoomLevel });
 
   if (areNumbersClose(currentZoomLevel, newZoomLevel)) {
@@ -84,6 +92,32 @@ async function handleActionClick(tab) {
 
   // Apply the new zoom level to all open tabs
   await setZoomLevelForAllTabs(newZoomLevel, settings);
+}
+
+// The zoom level that the tab is at (i.e., its page zoom without its base zoom
+// level), or null if it is not known
+function getCurrentZoomLevel(currentZoom, baseZoomLevel, targetZoomLevel) {
+  // Before the first toggle, the page zoom says nothing about the zoom level.
+  // For example, with a base zoom level of 80, an unzoomed page (100%) would
+  // seem to be at the zoom level 125.
+  if (targetZoomLevel === undefined) {
+    return null;
+  }
+
+  // If the page zoom had to be raised or lowered to what the browser supports
+  // (e.g., from 600% to 500%), undoing the base zoom level would give a wrong
+  // zoom level. So a tab at the page zoom of the target zoom level is regarded
+  // as being at the target zoom level.
+  if (
+    areNumbersClose(
+      currentZoom,
+      computePageZoom(baseZoomLevel, targetZoomLevel),
+    )
+  ) {
+    return targetZoomLevel;
+  }
+
+  return (currentZoom / baseZoomLevel) * 100;
 }
 
 async function setZoomLevelForAllTabs(zoomLevel, settings) {
@@ -217,6 +251,9 @@ function computePageZoom(baseZoomLevel, zoomLevel) {
   return Math.min(Math.max(pageZoom, MIN_PAGE_ZOOM), MAX_PAGE_ZOOM);
 }
 
+// The zoom level to toggle to from `currentZoom` (null if not known). With
+// fewer than 2 zoom levels, there is nothing to toggle, so `currentZoom` is
+// returned as is.
 function determineNewZoomLevel(
   currentZoom,
   zoomLevel1,
@@ -233,6 +270,11 @@ function determineNewZoomLevel(
   numbers.sort(function (a, b) {
     return a - b;
   });
+
+  if (currentZoom === null) {
+    // Start from the lowest zoom level
+    return numbers[0];
+  }
 
   if (numbers.length == 2) {
     let newZoomLevel = areNumbersClose(currentZoom, numbers[0])

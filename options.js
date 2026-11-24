@@ -101,9 +101,9 @@ async function handleFormSubmit(event) {
       showStatus('Settings saved.');
     } else {
       showStatus(
-        'Settings saved. However, the base zoom levels will not take effect ' +
-          'without permission to access the listed sites. Click "Save" ' +
-          'again to grant it.',
+        'Settings saved. However, the per-site base zoom levels will not ' +
+          'take effect without permission to access the listed sites. Click ' +
+          '"Save" again to grant it.',
         true,
       );
     }

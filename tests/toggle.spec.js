@@ -53,8 +53,9 @@ test('uses the zoom levels set in the options', async ({ ext, server }) => {
   });
   const { tabId } = await ext.openTab(server.url());
 
-  // Starts at 100, which is the 2nd smallest zoom level
-  for (const expected of [175, 90, 100, 175]) {
+  // The first toggle goes to the lowest zoom level, even though the page is at
+  // 100, which is also one of the zoom levels
+  for (const expected of [90, 100, 175, 90]) {
     await ext.toggle(tabId);
     await ext.expectZoom(tabId, expected);
   }
@@ -91,4 +92,7 @@ test('does not change the zoom with only 1 zoom level', async ({
   await ext.toggle(tabId);
 
   expect(await ext.getZoom(tabId)).toBeCloseTo(100, 5);
+  // So that new tabs are not zoomed either
+  const storage = await ext.getSyncStorage();
+  expect(storage).not.toHaveProperty('target_zoom_level');
 });

@@ -110,27 +110,65 @@ test('zoom levels are multipliers of the base zoom levels of this computer and s
   // The base zoom level of this computer needs no permissions
   const noPermission = await ext.openTab(server.url());
 
-  // An unzoomed page (100%) is at the zoom level 125 here (100% / 80%), so
-  // the first toggle goes to the next one
-  await ext.toggle(noPermission.tabId); // To 150
-
-  await ext.expectZoom(listed.tabId, 108); // 80% x 90% x 150%
-  await ext.expectZoom(notListed.tabId, 120); // 80% x 150%
-  await ext.expectZoom(noPermission.tabId, 120);
-
-  // Toggling takes both base zoom levels into account to tell which zoom
-  // level the tab is at
-  await ext.toggle(listed.tabId); // To 110
+  // The first toggle goes to the lowest zoom level. (The unzoomed page, at
+  // 100%, would otherwise seem to be at the zoom level 125 (100% / 80%).)
+  await ext.toggle(noPermission.tabId); // To 110
 
   await ext.expectZoom(listed.tabId, 79.2); // 80% x 90% x 110%
   await ext.expectZoom(notListed.tabId, 88); // 80% x 110%
   await ext.expectZoom(noPermission.tabId, 88);
 
-  await ext.toggle(notListed.tabId); // To 125
+  // Toggling takes both base zoom levels into account to tell which zoom
+  // level the tab is at
+  await ext.toggle(listed.tabId); // To 125
 
   await ext.expectZoom(listed.tabId, 90); // 80% x 90% x 125%
   await ext.expectZoom(notListed.tabId, 100); // 80% x 125%
   await ext.expectZoom(noPermission.tabId, 100);
+
+  await ext.toggle(notListed.tabId); // To 150
+
+  await ext.expectZoom(listed.tabId, 108); // 80% x 90% x 150%
+  await ext.expectZoom(notListed.tabId, 120); // 80% x 150%
+  await ext.expectZoom(noPermission.tabId, 120);
+
+  await ext.toggle(noPermission.tabId); // Back to 110
+  await ext.expectZoom(noPermission.tabId, 88);
+});
+
+test('toggling does not get stuck when this computer has a large or small base zoom level', async ({
+  ext,
+  server,
+}) => {
+  await ext.setLocalStorage({ computer_base_zoom_level: 400 });
+  const { tabId } = await ext.openTab(server.url());
+
+  for (const expected of [
+    440, // 400% x 110%
+    500, // 400% x 125%
+    500, // 400% x 150% = 600%, lowered to 500%
+    440, // Back to 110%
+  ]) {
+    await ext.toggle(tabId);
+    await ext.expectZoom(tabId, expected);
+  }
+
+  // With a small base, the zoom levels 50 and 90 are both raised to the same
+  // page zoom, so only the stored zoom level shows that toggling goes on
+  await ext.setLocalStorage({ computer_base_zoom_level: 25 });
+  await ext.expectZoom(tabId, 27.5); // 25% x 110%
+  await ext.setSyncStorage({
+    zoom_level_1: 50,
+    zoom_level_2: 90,
+    zoom_level_3: -1,
+  });
+  const targetZoomLevels = [];
+  for (let i = 0; i < 4; i++) {
+    await ext.toggle(tabId);
+    await ext.expectZoom(tabId, 25); // 12.5% or 22.5%, raised to 25%
+    targetZoomLevels.push((await ext.getSyncStorage()).target_zoom_level);
+  }
+  expect(targetZoomLevels).toEqual([50, 90, 50, 90]);
 });
 
 test('new tabs get the base zoom level of this computer', async ({
@@ -169,8 +207,8 @@ test('changing both base zoom levels at once takes effect right away', async ({
   await ext.toggle(tabId); // To 110
   await ext.expectZoom(tabId, 110);
 
-  // Each change triggers its own re-application of the zoom level; the one
-  // that ends last must use both new values
+  // Each change triggers its own re-application of the zoom level. (That an
+  // outdated one cannot end last is tested below.)
   await saveOptions(ext, {
     computerBaseZoomLevel: '80',
     siteLines: ['a.localhost, 50'],
@@ -218,6 +256,37 @@ test('re-applications of the zoom level run one after the other', async ({
     } finally {
       self.loadSettings = realLoadSettings;
       self.setZoomLevelForAllTabs = realSetZoomLevelForAllTabs;
+    }
+  });
+
+  expect(await ext.getZoom(tabId)).toBeCloseTo(88, 5); // 80% x 110%
+});
+
+test('a failed re-application of the zoom level does not stop later ones', async ({
+  ext,
+  server,
+}) => {
+  const { tabId } = await ext.openTab(server.url());
+  await ext.toggle(tabId); // To 110
+  await ext.expectZoom(tabId, 110);
+
+  await ext.evaluate(async () => {
+    const realLoadSettings = loadSettings;
+    let calls = 0;
+    self.loadSettings = async () => {
+      calls++;
+      if (calls === 1) {
+        throw new Error('Failed on purpose');
+      }
+      return { ...(await realLoadSettings()), computerBaseZoomLevel: 80 };
+    };
+
+    try {
+      reapplyZoomLevelToAllTabs();
+      reapplyZoomLevelToAllTabs();
+      await reapplyQueue;
+    } finally {
+      self.loadSettings = realLoadSettings;
     }
   });
 
