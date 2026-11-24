@@ -39,3 +39,11 @@ npm test
 ```
 
 To format the code, run `npm run auto-format`.
+
+## 4. Releasing
+
+1. Update `version` in `manifest.json`, and add a section for the version to `CHANGELOG.md`.
+2. After merging, publish a GitHub release with the tag `v<version>` (e.g., `v0.0.9`) on the merged commit.
+3. The "Release" workflow then attaches `zoom-toggler-v<version>.zip` to the release. Upload this ZIP to the Chrome Web Store. It has only the extension's files, with `manifest.json` at its root, as the store requires. (GitHub's "Source code (zip)" is not suitable: it has the files in a folder, along with development files.)
+
+The workflow can also be run by hand (Actions > Release > Run workflow) with an existing tag. If the tag has no release yet, it creates one, with the notes for that version from `CHANGELOG.md`.
