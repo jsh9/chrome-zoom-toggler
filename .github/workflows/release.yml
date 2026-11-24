@@ -7,7 +7,8 @@ name: Release
 # The workflow can also be run by hand (Actions > Release > Run workflow) for
 # a tag. Then, if the tag has no release yet, it creates one, with the notes
 # for that version from CHANGELOG.md. If the tag does not exist yet either, it
-# is created on the given commit.
+# is created on the given commit, or by default, on the latest commit of the
+# branch that the workflow is run on (e.g., main).
 on:
   release:
     types: [published]
@@ -17,7 +18,9 @@ on:
         description: Tag of the version (e.g., v0.0.8)
         required: true
       commit:
-        description: Full hash of the commit to create the tag on, if the tag does not exist yet
+        description: >-
+          Full hash of the commit to create the tag on, if the tag does not
+          exist yet (default: the latest commit of the branch above)
         required: false
 
 permissions:
@@ -45,18 +48,31 @@ jobs:
 
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.commit || format('refs/tags/{0}', env.TAG) }}
-          # The whole history, to find the previous tag for the release notes
+          # The whole history and all tags, to check out the commit to release
+          # and to find the previous tag for the release notes
           fetch-depth: 0
 
-      - name: Check that the tag, if it exists, is on the given commit
-        if: inputs.commit != ''
+      - name: Check out the commit to release
         run: |
           tag_commit=$(git rev-parse -q --verify "refs/tags/$TAG^{commit}" || true)
-          if [ -n "$tag_commit" ] && [ "$tag_commit" != "$(git rev-parse HEAD)" ]; then
-            echo "::error::The tag $TAG already exists on another commit ($tag_commit)"
-            exit 1
+          if [ -n "$tag_commit" ]; then
+            if [ -n "$COMMIT" ] && [ "$COMMIT" != "$tag_commit" ]; then
+              echo "::error::The tag $TAG already exists on another commit ($tag_commit)"
+              exit 1
+            fi
+            commit=$tag_commit
+          elif [ -n "$COMMIT" ]; then
+            if ! git cat-file -e "$COMMIT^{commit}" 2> /dev/null; then
+              echo "::error::The commit $COMMIT is not in the repository"
+              exit 1
+            fi
+            commit=$COMMIT
+          else
+            # The latest commit of the branch that the workflow is run on
+            commit=$GITHUB_SHA
           fi
+          git checkout --quiet --detach "$commit"
+          echo "Releasing $TAG from $(git log -1 --format='%H (%s)')"
 
       - name: Check that the tag matches the version in manifest.json
         run: |
