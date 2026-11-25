@@ -38,6 +38,10 @@ A listed domain also covers its subdomains (e.g., `github.com` covers `gist.gith
 
 When you save the list, the browser asks for permission to access the listed sites. The extension only uses this permission to tell which tabs are on these sites; it does not read or change the pages. When you remove a site from the list, its permission is removed as well (unless the site overlaps with a site that is still listed, e.g., `github.com` and `gist.github.com`).
 
+### If something new does not work after an update
+
+After an update, Chrome sometimes keeps running the previous version of the extension in the background, so new features do not work yet. Extension Options then shows a warning. To fix it, go to `chrome://extensions` and turn Zoom Toggler off and on again. Your settings are kept. (From version 0.0.10 on, the extension also notices this by itself and reloads, which takes effect at the latest after restarting Chrome.)
+
 ## 3. Development
 
 The tests load the extension into Chromium with [Playwright](https://playwright.dev/) and check how it zooms pages and saves settings. To run them (Node.js 20 or later is required):
@@ -52,7 +56,7 @@ To format the code, run `npm run auto-format`.
 
 ## 4. Releasing
 
-1. Update `version` in `manifest.json`, and add a section for the version to `CHANGELOG.md`.
+1. Update `version` in `manifest.json` and `BACKGROUND_VERSION` in `background.js` (a test checks that they match), and add a section for the version to `CHANGELOG.md`.
 2. After merging, publish a GitHub release with the tag `v<version>` (e.g., `v0.0.9`) on the merged commit.
 3. The "Release" workflow then attaches `zoom-toggler-v<version>.zip` to the release. Upload this ZIP to the Chrome Web Store. It has only the extension's files, with `manifest.json` at its root, as the store requires. (GitHub's "Source code (zip)" is not suitable: it has the files in a folder, along with development files.)
 

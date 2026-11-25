@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.10] - 2026-11-24
+
+### Fixed
+
+- After an update, Chrome can keep running the previous version of the
+  extension's background script, so new features do not work. This happened
+  when updating from 0.0.8 to 0.0.9: the base zoom level of this computer had
+  no effect, and toggling worked as in 0.0.8. The extension now notices this:
+  - Extension Options shows a warning, with a button that opens the
+    extensions page. Turning Zoom Toggler off and on again there fixes it,
+    and keeps the settings.
+  - From this version on, the background script reloads the extension when
+    it finds that it is out of date. This takes effect at the latest after
+    restarting the browser.
+
 ## [0.0.9] - 2026-11-23
 
 ### Added

@@ -32,9 +32,31 @@
       #status.error {
         color: #c00;
       }
+
+      #outdatedWarning {
+        margin-bottom: 10px;
+        padding: 0 10px 10px;
+        border: 1px solid #c00;
+        background: #fee;
+      }
     </style>
   </head>
   <body>
+    <div id="outdatedWarning" hidden>
+      <p>
+        <strong>
+          Zoom Toggler was updated to version
+          <span id="manifestVersion"></span>, but Chrome is still running an
+          older version of it in the background.
+        </strong>
+        New features, such as the base zoom level of this computer, do not
+        work until you turn Zoom Toggler off and on again on the extensions
+        page. Your settings are kept.
+      </p>
+      <button type="button" id="openExtensionsPage">
+        Open the extensions page
+      </button>
+    </div>
     <form id="zoomForm">
       <h3>Zoom levels:</h3>
       <p>(If you'd only like to toggle between 2 levels, use -1 as the 3rd level.)</p>
