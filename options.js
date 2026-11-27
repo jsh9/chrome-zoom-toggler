@@ -4,6 +4,7 @@ const ZOOM_LEVEL_3_KEY = 'zoom_level_3';
 const SITE_BASE_ZOOM_LEVELS_KEY = 'site_base_zoom_levels';
 // Kept in `chrome.storage.local` (not synced), so each computer has its own
 const COMPUTER_BASE_ZOOM_LEVEL_KEY = 'computer_base_zoom_level';
+const GET_BACKGROUND_VERSION_MESSAGE = 'get_background_version';
 
 const MIN_BASE_ZOOM_LEVEL = 25;
 const MAX_BASE_ZOOM_LEVEL = 500;
@@ -38,7 +39,36 @@ document.addEventListener('DOMContentLoaded', () => {
   document
     .getElementById('zoomForm')
     .addEventListener('submit', handleFormSubmit);
+
+  warnIfBackgroundIsOutdated();
+  document
+    .getElementById('openExtensionsPage')
+    .addEventListener('click', () => {
+      chrome.tabs.create({
+        url: `chrome://extensions/?id=${chrome.runtime.id}`,
+      });
+    });
 });
+
+// After an update, Chrome can keep running the previous version of the
+// background script (see BACKGROUND_VERSION in background.js), and then new
+// features do not work. If so, tell the user how to fix it.
+async function warnIfBackgroundIsOutdated() {
+  const manifestVersion = chrome.runtime.getManifest().version;
+  let backgroundVersion;
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: GET_BACKGROUND_VERSION_MESSAGE,
+    });
+    backgroundVersion = response?.version;
+  } catch {
+    // Background scripts before 0.0.10 do not answer
+  }
+
+  const isOutdated = backgroundVersion !== manifestVersion;
+  document.getElementById('manifestVersion').textContent = manifestVersion;
+  document.getElementById('outdatedWarning').hidden = !isOutdated;
+}
 
 async function handleFormSubmit(event) {
   event.preventDefault();

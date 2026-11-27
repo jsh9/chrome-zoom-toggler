@@ -1,3 +1,14 @@
+// The version of this script, which must be the same as in manifest.json (a
+// test checks this). After an update, Chrome can keep running the previous
+// version of this script with the new manifest.json (it happened when
+// updating from 0.0.8 to 0.0.9), and then new features do not work. Comparing
+// the two versions tells whether this script is out of date.
+const BACKGROUND_VERSION = '0.0.10';
+const GET_BACKGROUND_VERSION_MESSAGE = 'get_background_version';
+// The version of manifest.json for which the extension was last reloaded
+// because this script was out of date, so that it is reloaded only once
+const RELOADED_FOR_VERSION_KEY = 'reloaded_for_version';
+
 const ZOOM_LEVEL_1_KEY = 'zoom_level_1';
 const ZOOM_LEVEL_2_KEY = 'zoom_level_2';
 const ZOOM_LEVEL_3_KEY = 'zoom_level_3';
@@ -55,6 +66,46 @@ async function loadSettings() {
 // `value` if it is a positive number, or undefined (e.g., if it is not set)
 function toPositiveNumber(value) {
   return typeof value === 'number' && value > 0 ? value : undefined;
+}
+
+// Tell the options page which version of this script is running, so that it
+// can warn when this script is out of date
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === GET_BACKGROUND_VERSION_MESSAGE) {
+    sendResponse({ version: BACKGROUND_VERSION });
+  }
+});
+
+reloadIfOutdated().catch((error) => {
+  console.log('Cannot check the version of this script:', error.message);
+});
+
+// If Chrome runs this script with a newer manifest.json, reload the extension.
+// That makes Chrome use the new script, at the latest after the browser
+// restarts. This happens only once per version, so it cannot loop.
+async function reloadIfOutdated() {
+  const manifestVersion = chrome.runtime.getManifest().version;
+  if (manifestVersion === BACKGROUND_VERSION) {
+    return;
+  }
+
+  const result = await chrome.storage.local.get(RELOADED_FOR_VERSION_KEY);
+  if (result[RELOADED_FOR_VERSION_KEY] === manifestVersion) {
+    console.log(
+      `This script (${BACKGROUND_VERSION}) is still older than the ` +
+        `extension (${manifestVersion}), even after reloading`,
+    );
+    return;
+  }
+
+  console.log(
+    `This script (${BACKGROUND_VERSION}) is older than the extension ` +
+      `(${manifestVersion}); reloading the extension`,
+  );
+  await chrome.storage.local.set({
+    [RELOADED_FOR_VERSION_KEY]: manifestVersion,
+  });
+  chrome.runtime.reload();
 }
 
 // Listen for extension icon clicks
