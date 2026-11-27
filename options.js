@@ -52,8 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // After an update, Chrome can keep running the previous version of the
 // background script (see BACKGROUND_VERSION in background.js), and then new
-// features do not work. If so, tell the user how to fix it. Returns whether
-// the background script is out of date.
+// features do not work. If so, tell the user how to fix it.
 async function warnIfBackgroundIsOutdated() {
   const manifestVersion = chrome.runtime.getManifest().version;
   let backgroundVersion;
@@ -69,7 +68,6 @@ async function warnIfBackgroundIsOutdated() {
   const isOutdated = backgroundVersion !== manifestVersion;
   document.getElementById('manifestVersion').textContent = manifestVersion;
   document.getElementById('outdatedWarning').hidden = !isOutdated;
-  return isOutdated;
 }
 
 async function handleFormSubmit(event) {

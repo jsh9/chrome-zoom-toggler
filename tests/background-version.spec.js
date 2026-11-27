@@ -19,14 +19,17 @@ test('the options page shows no warning when the background script is up to date
   ext,
 }) => {
   const page = await ext.openOptions();
+  const version = await page.evaluate(
+    () => chrome.runtime.getManifest().version,
+  );
 
   const response = await page.evaluate(() =>
     chrome.runtime.sendMessage({ type: 'get_background_version' }),
   );
-  expect(response).toEqual({
-    version: await ext.evaluate(() => chrome.runtime.getManifest().version),
-  });
-  expect(await page.evaluate(() => warnIfBackgroundIsOutdated())).toBe(false);
+  expect(response).toEqual({ version });
+  // The page fills in the version once it has checked the background script,
+  // which it does when it opens. (The warning is hidden until then anyway.)
+  await expect(page.locator('#manifestVersion')).toHaveText(version);
   await expect(page.locator('#outdatedWarning')).toBeHidden();
 });
 

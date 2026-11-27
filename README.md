@@ -40,7 +40,7 @@ When you save the list, the browser asks for permission to access the listed sit
 
 ### If something new does not work after an update
 
-After an update, Chrome sometimes keeps running the previous version of the extension in the background, so new features do not work yet. Extension Options then shows a warning. To fix it, go to `chrome://extensions` and turn Zoom Toggler off and on again. Your settings are kept. (From version 0.0.10 on, the extension also notices this by itself and reloads, which takes effect at the latest after restarting Chrome.)
+After an update, Chrome sometimes keeps running the previous version of the extension in the background, so new features do not work yet. Extension Options then shows a warning. To fix it, go to `chrome://extensions` and turn Zoom Toggler off and on again. Your settings are kept. (If the version still running in the background is 0.0.10 or later, the extension also notices this by itself and reloads, which takes effect at the latest after restarting Chrome. Older versions cannot do this.)
 
 ## 3. Development
 
